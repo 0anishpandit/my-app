@@ -1,48 +1,98 @@
+// TopHeader.jsx
 import React from "react";
 import { LogOut, Bell, MessageSquare, UserRoundSearch } from "lucide-react";
+import { headerPermissions } from "../auth/headerPermissions";
+import { useSidebarStore } from "../store/useSidebarStore";
 
-const Header = ({ role, onLogout }) => {
+const TopHeader = ({ role, onLogout, userData }) => {
+  const config = headerPermissions[role] || [];
+  const isCollapsed = useSidebarStore((state) => state.isCollapsed); // Correct Zustand usage
+
+  // Dynamic Date & Time
+  const currentDate = new Date();
+  const dateStr = currentDate.toLocaleDateString("en-GB");
+  const timeStr = currentDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  // Helper function to get field value dynamically
+  const getFieldValue = (field) => {
+    switch (field) {
+      case "date":
+        return dateStr;
+      case "time":
+        return timeStr;
+      case "temp":
+        return "40 °C";
+      default:
+        return userData[field] || "-";
+    }
+  };
+
+  // Heights adjustments — make slightly smaller when collapsed
+  const rowHeightLogo = isCollapsed ? "h-7.5" : "h-7.5"; // Row 1 & 2
+  const rowHeightItem = isCollapsed ? "h-8.5" : "h-7.5"; // Row 3
+
   return (
-    <header className="w-full flex flex-col md:flex-row justify-between items-center py-2 px-4 bg-blue-600 text-white shadow border-b border-white">
-      {/* Left side: UMS title */}
-      <div className="flex flex-col md:flex-row items-center mb-2 md:mb-0 space-y-1 md:space-y-0 md:space-x-2">
-        <h1 className="flex items-center text-lg md:text-xl font-bold text-orange-400">
-          <UserRoundSearch className="mr-2" />Innov
-        </h1>
-        <h1 className="text-lg md:text-xl font-bold">Nepal</h1>
-        <h1 className="text-sm md:text-base font-semibold underline">
-          UMS (Unified Management System)
-        </h1>
+    <header className="w-full bg-blue-200 text-black text-sm transition-all duration-300">
+      {/* Row 1: Top bar */}
+      <div className={`flex justify-between items-center px-4 border-b border-black transition-all duration-300 ${rowHeightLogo}`}>
+        <div className="flex items-center gap-2 font-bold">
+          <UserRoundSearch size={18} className="text-blue-600" />
+          <span>
+            <span className="text-orange-500">Innov</span>
+            Nepal UMS (<span className="capitalize">{role}</span>)
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button className="p-1 hover:text-blue-600"><MessageSquare size={18} /></button>
+          <button className="p-1 hover:text-blue-600"><Bell size={18} /></button>
+          <button onClick={onLogout} className="font-semibold hover:text-red-600 transition">LogOut</button>
+        </div>
       </div>
 
-      {/* Right side: role label + notifications + logout */}
-      <div className="flex items-center gap-3 md:gap-4 flex-wrap">
-        {/* Role label */}
-        <span className="text-sm md:text-base font-medium uppercase">{role} student</span>
+      {/* Row 2: Dynamic role-specific header */}
+      <div className={`flex justify-between items-center px-4 border-b border-black transition-all duration-300 ${rowHeightLogo}`}>
+        {config.includes("name") && (
+          <div className="font-semibold">
+            <span>{getFieldValue("name")}</span>{" "}
+            {config.includes("regNo") && <span className="font-normal">(Reg. No. {getFieldValue("regNo")})</span>}
+            {config.includes("parentName") && <span>{getFieldValue("parentName")}</span>}
+            {config.includes("studentName") && <span className="font-normal">({getFieldValue("studentName")})</span>}
+          </div>
+        )}
+        {config.includes("course") && <div className="text-right font-medium">{getFieldValue("course")}</div>}
+        {config.includes("className") && <div className="text-right font-medium">{getFieldValue("className")}</div>}
+      </div>
 
-        {/* Notifications */}
-        <button className="relative p-2 hover:bg-blue-500 rounded-full">
-          <MessageSquare className="w-5 h-5" />
-          <span className="absolute top-0 right-0 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
-        </button>
-        <button className="relative p-2 hover:bg-blue-500 rounded-full">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-0 right-0 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
-        </button>
+      {/* Row 3: Dynamic common section */}
+      <div className={`flex justify-between items-center border-b border-black px-4 transition-all duration-300 ${rowHeightItem}`}>
+        <div className="flex gap-6 flex-wrap">
+          {config.map((field) => {
+            if (["name", "regNo", "parentName", "studentName", "course", "className", "quote", "studentStatus"].includes(field)) {
+              return null;
+            }
+            return (
+              <span key={field}>
+                <strong>{field.charAt(0).toUpperCase() + field.slice(1)}:</strong> {getFieldValue(field)}
+              </span>
+            );
+          })}
+        </div>
 
+        {config.includes("quote") && (
+          <div className="italic font-medium">
+            <strong>Quote:</strong> ‘ Life Doesn’t give you multiple chance! ’
+          </div>
+        )}
 
-        {/* Logout Logic */}
-        <button
-          onClick={onLogout}   // call the logout function from Zustand
-          className="flex items-center gap-1 bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm md:text-base transition duration-200"
-           >
-          <LogOut className="w-4 h-4 md:w-5 md:h-5" />   {/* icon size adjusts on larger screens */}
-          <span className="hidden sm:inline">Logout</span> {/* hide text on very small screens */}
-        </button>
-
+        {config.includes("studentStatus") && (
+          <div className="font-medium">
+            <strong>Student Status:</strong> {getFieldValue("studentStatus")}
+          </div>
+        )}
       </div>
     </header>
   );
 };
 
-export default Header;
+export default TopHeader;
